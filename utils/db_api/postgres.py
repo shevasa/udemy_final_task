@@ -50,5 +50,23 @@ class Database:
         sql = """update users set money=money+10 where user_id=$1"""
         return await self.execute(sql, user_id, execute=True)
 
+    async def get_all_products(self):
+        sql = "select * from products order by name"
+        return await self.execute(sql, fetch=True)
+
+    async def get_needed_products(self, text):
+        text = f'%{text}%'
+        sql = "select * from products where name ilike $1 or description ilike $1 order by name"
+        return await self.execute(sql, text, fetch=True)
+
+    async def get_specific_product(self, product_id):
+        sql = "select * from products where product_id=$1"
+        return await self.execute(sql, product_id, fetchrow=True)
+
+    async def add_product(self, photo_url, name, description, price):
+        sql = """INSERT INTO products (photo_url, name, description, price) 
+        values ($1, $2, $3, $4) returning *"""
+        return await self.execute(sql, photo_url, name, description, price, fetchrow=True)
+
 
 

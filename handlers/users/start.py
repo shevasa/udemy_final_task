@@ -1,4 +1,3 @@
-import logging
 import re
 from typing import Union
 
@@ -9,15 +8,31 @@ from asyncpg import UniqueViolationError, DataError
 
 from data.config import channels
 from filters import Check_user_id, Check_subscription, Check_old_user
-from keyboards.inline import no_refferal_keyboard, no_ref_callback
+from keyboards.inline import no_refferal_keyboard, no_ref_callback, get_start_keyboard, post_callbackdata, \
+    admin_panel_callback
 from loader import dp, db, bot
+from states import Create_post
 
 
+@dp.callback_query_handler(admin_panel_callback.filter(action='exit_to_start'))
+@dp.callback_query_handler(post_callbackdata.filter(action='post', object='post'), state=Create_post.post_creation)
 @dp.message_handler(Check_old_user(), CommandStart())
-@dp.callback_query_handler(Check_subscription(), no_ref_callback.filter(action="check_subscription"))
+@dp.callback_query_handler(no_ref_callback.filter(action="check_subscription"), Check_subscription())
 @dp.message_handler(Check_user_id(), state="check_invitation_code")
-@dp.message_handler(CommandStart(re.compile(r'\d{1,12}')))
+@dp.message_handler(CommandStart(re.compile(r'\d{6,12}')))
 async def bot_start_with_referral(update: Union[types.Message, types.CallbackQuery], state: FSMContext):
+    if await state.get_state():
+        state_data = await state.get_data()
+        try:
+            await db.add_product(**state_data)
+            await update.message.edit_reply_markup()
+            await update.message.answer("<b>Товар успешно добавлен!</b>")
+        except TypeError:
+            await update.message.edit_reply_markup()
+            await update.message.answer(
+                "<b>Для успешного создания обьявления нужно ввести все параметры!\nПопробуйте еще раз</b>")
+        await state.finish()
+
     bot_username = (await bot.me).username
     user_id = update.from_user.id
     text = f"👋Привет, {update.from_user.full_name}!\n Твоя ссылка для приглашения друзей: https://t.me/{bot_username}?start={user_id}\n\n"
@@ -45,9 +60,9 @@ async def bot_start_with_referral(update: Union[types.Message, types.CallbackQue
     try:
         username = dict(await db.get_user_by_user_id(referral)).get('username')
         text += f"Ты перешёл по ссылке от пользователя @{username}"
-    except TypeError as er:
-        logging.error(f"{er}")
-    await message.answer(text)
+    except TypeError:
+        pass
+    await message.answer(text, reply_markup=await get_start_keyboard(user_id))
 
 
 @dp.message_handler(state="check_invitation_code")
@@ -64,3 +79,7 @@ async def bot_start_no_referral(message: types.Message, state: FSMContext):
         invite_link = await channel.export_invite_link()
         answer_text += f"Канал: <a href='{invite_link}'>{channel.title}</a>"
     await message.answer(answer_text, reply_markup=no_refferal_keyboard)
+
+# @dp.message_handler(content_types=types.ContentType.PHOTO)
+# async def photo(message: types.Message):
+#     await message.answer(f"{message.photo[-1].file_id}")

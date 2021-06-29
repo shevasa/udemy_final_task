@@ -32,6 +32,9 @@ class ThrottlingMiddleware(BaseMiddleware):
             await self.message_throttled(message, t)
             raise CancelHandler()
 
+    async def on_pre_process_callback_query(self, call: types.CallbackQuery, data: dict):
+        await call.answer()
+
     async def message_throttled(self, message: types.Message, throttled: Throttled):
         if throttled.exceeded_count <= 2:
             await message.reply("Too many requests!")
