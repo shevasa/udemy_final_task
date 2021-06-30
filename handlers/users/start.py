@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Union
 
@@ -9,17 +10,18 @@ from asyncpg import UniqueViolationError, DataError
 from data.config import channels
 from filters import Check_user_id, Check_subscription, Check_old_user
 from keyboards.inline import no_refferal_keyboard, no_ref_callback, get_start_keyboard, post_callbackdata, \
-    admin_panel_callback
+    admin_panel_callback, referral_system_callback
 from loader import dp, db, bot
 from states import Create_post
 
 
+@dp.callback_query_handler(referral_system_callback.filter(action='exit_to_start'))
 @dp.callback_query_handler(admin_panel_callback.filter(action='exit_to_start'))
 @dp.callback_query_handler(post_callbackdata.filter(action='post', object='post'), state=Create_post.post_creation)
 @dp.message_handler(Check_old_user(), CommandStart())
 @dp.callback_query_handler(no_ref_callback.filter(action="check_subscription"), Check_subscription())
 @dp.message_handler(Check_user_id(), state="check_invitation_code")
-@dp.message_handler(CommandStart(re.compile(r'\d{6,12}')))
+@dp.message_handler(CommandStart(re.compile(r'^\d{6,12}?')))
 async def bot_start_with_referral(update: Union[types.Message, types.CallbackQuery], state: FSMContext):
     if await state.get_state():
         state_data = await state.get_data()
@@ -53,10 +55,12 @@ async def bot_start_with_referral(update: Union[types.Message, types.CallbackQue
         await db.add_user(user_id=user_id,
                           username=message.from_user.username,
                           full_name=message.from_user.full_name,
-                          refferal=referral)
+                          referral=referral)
         await db.add_money_by_user_id(referral)  # Добавляем деньгу если пользователь новый перешел по ссылке
     except UniqueViolationError or DataError:
         pass
+    bonus = dict(await db.get_user_by_user_id(user_id)).get('money')
+    text += f"Твой бонусный счёт: {bonus}UAH"
     try:
         username = dict(await db.get_user_by_user_id(referral)).get('username')
         text += f"Ты перешёл по ссылке от пользователя @{username}"

@@ -13,8 +13,8 @@ from utils.misc.construct_product_info import construct_info
                            state=Create_post.post_creation)
 @dp.callback_query_handler(start_keyboard_callback.filter(move_to="admin_system"))
 async def get_admin_panel(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_reply_markup()
     if await state.get_state() == "Create_post:post_creation":
-        await call.message.edit_reply_markup()
         await call.message.answer('<code>Вы отменили создание продукта</code>')
         await state.reset_state()
     await call.message.answer("<b>Вы перешли а панель администратора</b>", reply_markup=admin_panel_keyboard)

@@ -17,7 +17,7 @@ async def some_query(query: types.InlineQuery):
                                                     photo_height=512,
                                                     photo_width=512,
                                                     title=product.get('name'),
-                                                    caption=f"\nЦена: {product.get('price')}",
+                                                    caption=f"\nЦена: {product.get('price')}UAH",
                                                     reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                                                         [
                                                             InlineKeyboardButton(text="👀Показать товар",

@@ -34,9 +34,11 @@ class Database:
                     result = await connection.execute(command, *args)
             return result
 
-    async def add_user(self, user_id, full_name, username, refferal=None, money=0):
+    #################User####################
+
+    async def add_user(self, user_id, full_name, username, referral=None, money=0):
         sql = """INSERT INTO users values ($1, $2, $3, $4, $5)"""
-        return await self.execute(sql, user_id, full_name, username, refferal, money, execute=True)
+        return await self.execute(sql, user_id, full_name, username, referral, money, execute=True)
 
     async def get_user_by_user_id(self, user_id):
         sql = """select * from users where user_id=$1"""
@@ -49,6 +51,16 @@ class Database:
     async def add_money_by_user_id(self, user_id):
         sql = """update users set money=money+10 where user_id=$1"""
         return await self.execute(sql, user_id, execute=True)
+
+    async def get_user_referrals_by_user_id(self, user_id):
+        sql = "select user_id, full_name from users where referral=$1"
+        return await self.execute(sql, user_id, fetch=True)
+
+    async def pay_by_bonus(self, price, user_id):
+        sql = "update users set money=money-$1 where user_id=$2"
+        return await self.execute(sql, price, user_id, execute=True)
+
+    #####################Products#############################
 
     async def get_all_products(self):
         sql = "select * from products order by name"
@@ -67,6 +79,3 @@ class Database:
         sql = """INSERT INTO products (photo_url, name, description, price) 
         values ($1, $2, $3, $4) returning *"""
         return await self.execute(sql, photo_url, name, description, price, fetchrow=True)
-
-
-
