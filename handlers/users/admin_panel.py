@@ -17,7 +17,7 @@ async def get_admin_panel(call: types.CallbackQuery, state: FSMContext):
     if await state.get_state() == "Create_post:post_creation":
         await call.message.answer('<code>Вы отменили создание продукта</code>')
         await state.reset_state()
-    await call.message.answer("<b>Вы перешли а панель администратора</b>", reply_markup=admin_panel_keyboard)
+    await call.message.answer("<b>Панель администратора</b>", reply_markup=admin_panel_keyboard)
 
 
 @dp.callback_query_handler(admin_panel_callback.filter(action='add_product'))

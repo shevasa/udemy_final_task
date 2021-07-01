@@ -4,6 +4,7 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 
+from data.shipping_items import STANDART_SHIPPING, MINIMAL_SHIPPING, MAXIMUM_SHIPPING
 from keyboards.inline import checkout_callback, get_checkout_menu
 from loader import dp, db, bot
 from utils.misc.product_class import Product
@@ -74,11 +75,20 @@ async def send_invoice(call: types.CallbackQuery):
         types.LabeledPrice(label=f'{chosen_product.get("name")}', amount=chosen_product.get("price") * quantity * 100)]
     product_in_invoice = Product(title=f'{chosen_product.get("name")}', currency="UAH", prices=prices,
                                  description=chosen_product.get("description") + f"\nКоличество: {quantity}",
+                                 need_shipping_address=True,
                                  start_parameter='selling',
                                  photo_url=chosen_product.get('photo_url'),
-                                 photo_height=512, photo_width=512)
+                                 photo_height=512, photo_width=512,
+                                 is_flexible=True)
     await bot.send_invoice(chat_id=call.message.chat.id, payload=f'{chosen_product.get("product_id")}000',
                            **product_in_invoice.generate_invoice())
+
+
+@dp.shipping_query_handler()
+async def choose_delivery(query: types.ShippingQuery):
+    await bot.answer_shipping_query(shipping_query_id=query.id,
+                                    shipping_options=[STANDART_SHIPPING, MINIMAL_SHIPPING, MAXIMUM_SHIPPING],
+                                    ok=True)
 
 
 @dp.pre_checkout_query_handler()
